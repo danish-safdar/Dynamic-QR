@@ -16,14 +16,15 @@ class RedirectController extends Controller
             return response()->view('inactive', [], 404);
         }
 
-        $links = $standee->links;
-
         // Multi mode: landing page
-        if ($standee->mode === 'multi' && $links->count() > 0) {
-            $standee->increment('scans');
-            $standee->update(['last_scanned_at' => now()]);
+        if ($standee->mode === 'multi') {
+            $links = $standee->links;
 
-            return view('landing', compact('standee', 'links'));
+            if ($links->count() > 0) {
+                $this->recordScan($standee);
+
+                return view('landing', compact('standee', 'links'));
+            }
         }
 
         // Single mode: seedha redirect
@@ -31,8 +32,7 @@ class RedirectController extends Controller
             return response()->view('inactive', [], 404);
         }
 
-        $standee->increment('scans');
-        $standee->update(['last_scanned_at' => now()]);
+        $this->recordScan($standee);
 
         return redirect()->away($standee->destination_url, 302);
     }
@@ -47,5 +47,11 @@ class RedirectController extends Controller
         $link->increment('clicks');
 
         return redirect()->away($link->url, 302);
+    }
+
+    // Scan count aur last scan time ek hi query mein
+    private function recordScan(Standee $standee): void
+    {
+        $standee->increment('scans', 1, ['last_scanned_at' => now()]);
     }
 }
